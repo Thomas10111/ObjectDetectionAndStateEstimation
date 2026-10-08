@@ -1,0 +1,18 @@
+# Zenoh router for ROS 2 in WSL, connecting to the router on the Jetson Orin
+# over Ethernet (192.168.56.1). Installed as a systemd user service by
+# scripts/wsl/setup_zenoh.sh.
+#
+# Only one endpoint on purpose: with both Ethernet and USB (192.168.55.1)
+# listed, Zenoh always ended up on the slower USB link. To use USB instead,
+# replace 192.168.56.1 with 192.168.55.1 and run setup_zenoh.sh again.
+[Unit]
+Description=Zenoh router for ROS 2 (rmw_zenoh), connected to the Orin
+
+[Service]
+Environment="ZENOH_CONFIG_OVERRIDE=connect/endpoints=[\"tcp/192.168.56.1:7447\"];transport/shared_memory/enabled=true"
+ExecStart=/bin/bash -c 'source /opt/ros/lyrical/setup.bash && exec ros2 run rmw_zenoh_cpp rmw_zenohd'
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

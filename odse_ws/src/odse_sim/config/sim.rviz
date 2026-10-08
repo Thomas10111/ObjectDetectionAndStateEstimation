@@ -1,0 +1,56 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Grid
+      Enabled: true
+      Cell Size: 0.25
+      Plane Cell Count: 16
+      Reference Frame: odom
+    - Class: rviz_default_plugins/RobotModel
+      Name: RobotModel
+      Enabled: true
+      Description Source: Topic
+      Description Topic:
+        Value: /robot_description
+    - Class: rviz_default_plugins/TF
+      Name: TF
+      Enabled: false
+    - Class: rviz_default_plugins/Odometry
+      Name: Odometry
+      Enabled: true
+      Topic:
+        Value: /odom
+      Keep: 200
+      Shape:
+        Value: Arrow
+        Shaft Length: 0.05
+        Head Length: 0.03
+    - Class: rviz_default_plugins/PointCloud2
+      Name: Depth points
+      Enabled: true
+      Topic:
+        Value: /camera/depth/points
+      Size (m): 0.01
+      Color Transformer: AxisColor
+    - Class: rviz_default_plugins/Image
+      Name: Color image
+      Enabled: true
+      Topic:
+        Value: /camera/color/image_raw
+  Global Options:
+    Fixed Frame: odom
+    Frame Rate: 30
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 2.5
+      Focal Point:
+        X: 0.5
+        Y: 0
+        Z: 0
+      Pitch: 0.7
+      Yaw: 3.6
