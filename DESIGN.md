@@ -19,8 +19,9 @@ know how the robot is translating or rotating in the world.
 
 Two things change here:
 
-1. **An IMU is added** to the Orin board (accelerometer + gyroscope, optionally
-   magnetometer). This gives high-rate motion measurements between camera frames.
+1. **An IMU is added** to the Orin board — an **MPU-6050** (3-axis accelerometer +
+   3-axis gyroscope) over **I2C**. This gives high-rate motion measurements between
+   camera frames.
 2. **The camera stream is reused.** Instead of adding a second camera for pose tracking,
    the *same* video stream feeds two networks/pipelines concurrently:
    - an **object-detection** pipeline (what the current project already does), and
@@ -29,15 +30,26 @@ Two things change here:
 The result is a robot that can both perceive obstacles/targets **and** localize and track
 its own 6-DoF motion — without extra optical hardware.
 
+**A note on odometry vs. SLAM.** Visual-inertial odometry gives pose **relative to the
+starting point**, and its error **accumulates without bound** — good for *"how have I moved
+since I started,"* insufficient for navigating an environment over time. Actual navigation
+needs **SLAM**: a persistent **map**, **loop closure** to bound the drift, and
+**relocalization** to place the robot in a previously built map. This project therefore
+treats VIO as the **odometry front-end** and adds a **SLAM back-end** on top of it. VIO is
+built and validated **first** (Phase 1); SLAM is layered on as **Phase 2** — a validated
+odometry source de-risks the map, since most SLAM failures trace back to bad odometry.
+
 ---
 
 ## Goals
 
 - **Shared camera, two consumers.** One capture source, fanned out to two pipelines with
   minimal copies and no frame contention.
-- **Visual-inertial state estimation.** Fuse camera + IMU into a 6-DoF pose estimate
-  (position, orientation) and velocity, robust to the ~30 FPS camera rate by leaning on
-  the high-rate IMU between frames.
+- **Visual-inertial state estimation (Phase 1).** Fuse camera + IMU into a 6-DoF pose
+  estimate (position, orientation) and velocity, robust to the ~30 FPS camera rate by
+  leaning on the high-rate IMU between frames. This is odometry — pose relative to start.
+- **SLAM for navigation (Phase 2).** Build and persist a map, close loops to bound drift,
+  and relocalize within a saved map, so a planner can navigate the environment.
 - **Keep object detection working.** No regression in the detection/navigation behavior
   inherited from `ObjectDetection`.
 - **Run on the Orin in real time.** Budget the two pipelines so both keep up on the
@@ -45,10 +57,13 @@ its own 6-DoF motion — without extra optical hardware.
 
 ## Non-Goals (initial phase)
 
-- Full SLAM with global loop closure and map persistence. Start with **odometry**
-  (drift-prone but simple); mapping/loop-closure can come later.
+- SLAM in **Phase 1**. The first milestone is **odometry** (VIO) only — drift-prone but
+  simpler. Full SLAM (map building, loop closure, relocalization, map persistence) is a
+  planned **Phase 2** that builds on the validated VIO front-end, not out of scope.
 - Multi-camera or stereo rigs. This is deliberately a **single-camera** design.
 - Retraining detection models. Reuse the existing YOLOv8n / OpenVINO assets.
+- Path planning / autonomous navigation itself. This project provides the map and pose that
+  a navigation stack (e.g. Nav2) would consume; the planner is downstream.
 
 ---
 
@@ -130,7 +145,8 @@ its own 6-DoF motion — without extra optical hardware.
 - **Compute:** NVIDIA Jetson Orin.
 - **Camera:** single camera (reused for both pipelines) — same class of device as the
   `ObjectDetection` project (RGB webcam; RealSense optional).
-- **IMU:** newly added to the Orin (accelerometer + gyroscope; magnetometer optional).
+- **IMU:** **InvenSense MPU-6050**, newly added to the Orin. 6-DoF (3-axis
+  accelerometer + 3-axis gyroscope; no magnetometer). Connected over **I2C**.
 
 ## Software Environment
 
@@ -169,10 +185,32 @@ frame publisher, the IMU driver, the state-estimation pipeline, and time synchro
    publisher; confirm parity with `ObjectDetection`.
 3. **IMU driver + calibration.** Bring the IMU online; log synchronized camera + IMU data.
 4. **Camera–IMU calibration.** Intrinsics, extrinsics, and time offset.
-5. **State estimation (VIO).** Integrate a VIO approach; validate pose against a known
-   trajectory.
+5. **State estimation (VIO) — Phase 1.** Integrate a VIO approach; validate pose against a
+   known trajectory. Delivers drift-prone odometry relative to the start.
 6. **Joint run + budgeting.** Both pipelines concurrently on the Orin in real time;
    profile and tune the compute split.
+7. **SLAM back-end — Phase 2.** Layer a SLAM stack on top of the VIO front-end: build and
+   persist a map, add loop closure to bound drift, and support relocalization in a saved
+   map. Publish the `map → odom` correction so the pose is globally consistent.
+
+---
+
+## TODO — Nodes to Build
+
+The system is decomposed into the following ROS 2 nodes:
+
+1. **IMU node.** Reads data from the MPU-6050 over I2C and publishes it (e.g.
+   `sensor_msgs/Imu`).
+2. **Object-detection network.** Reads the camera stream and detects objects (the YOLOv8 /
+   OpenVINO pipeline carried over from `ObjectDetection`).
+3. **Visual pose network.** A second network that uses visual cues from the same camera
+   stream to estimate the camera's pose.
+4. **Fusion node.** Combines the IMU data with the camera-derived pose.
+5. **Robot-pose node.** Outputs the final robot pose after fusing IMU and camera data —
+   this is the `odom → base_link` odometry (e.g. `nav_msgs/Odometry` + TF).
+6. **SLAM node (Phase 2).** Consumes VIO odometry + camera (+ IMU), builds and persists a
+   map, closes loops, relocalizes, and publishes the `map → odom` correction so the pose is
+   globally consistent and usable for navigation.
 
 ---
 

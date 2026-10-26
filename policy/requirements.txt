@@ -1,0 +1,10 @@
+# Training the driving policy on the laptop (WSL). PyTorch itself is installed
+# separately from the CPU-only index (see scripts/setup_wsl_policy.sh): the
+# laptop has no NVIDIA GPU, and the default build downloads several GB of CUDA.
+gymnasium>=1.0
+stable-baselines3>=2.4
+onnx>=1.17
+onnxruntime>=1.20
+tensorboard>=2.18
+numpy
+matplotlib

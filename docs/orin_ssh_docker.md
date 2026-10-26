@@ -85,7 +85,7 @@ From PowerShell, without logging in first:
 ```powershell
 ssh fish@192.168.56.1 "docker ps -a"                 # container status
 ssh fish@192.168.56.1 "docker stop ros2_lyrical"     # stop the container
-ssh -t fish@192.168.56.1 "sudo shutdown now"         # switch the Orin off (asks for the password)
+ssh -t nvidia_orin "sudo shutdown now"              # switch the Orin off; -t lets sudo ask for the password
 scp .\file.txt fish@192.168.56.1:/tmp/              # copy a file to the Orin
 ```
 

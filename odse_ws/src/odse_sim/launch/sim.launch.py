@@ -34,6 +34,10 @@ def generate_launch_description() -> LaunchDescription:
     world = LaunchConfiguration("world")
     camera_x = LaunchConfiguration("camera_x")
     camera_z = LaunchConfiguration("camera_z")
+    cameras = LaunchConfiguration("cameras")
+    car_x = LaunchConfiguration("car_x")
+    car_y = LaunchConfiguration("car_y")
+    car_yaw = LaunchConfiguration("car_yaw")
 
     robot_description = ParameterValue(
         Command(
@@ -44,6 +48,8 @@ def generate_launch_description() -> LaunchDescription:
                 camera_x,
                 " camera_z:=",
                 camera_z,
+                " cameras:=",
+                cameras,
             ]
         ),
         value_type=str,
@@ -61,6 +67,12 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument("world", default_value=str(share / "worlds" / "room.sdf")),
             DeclareLaunchArgument("camera_x", default_value="0.25"),
             DeclareLaunchArgument("camera_z", default_value="0.15"),
+            DeclareLaunchArgument("car_x", default_value="0.0", description="start position of the car, m"),
+            DeclareLaunchArgument("car_y", default_value="0.0", description="start position of the car, m"),
+            DeclareLaunchArgument("car_yaw", default_value="0.0", description="start heading of the car, rad (0 = +x)"),
+            DeclareLaunchArgument(
+                "cameras", default_value="true", description="false: no rendered cameras, faster"
+            ),
             # Gazebo's own transport finds its peers by multicast, which fails with
             # WSL mirrored networking ("Network is unreachable"). Keep it on this
             # machine; ROS 2 traffic to the Orin is not affected.
@@ -78,7 +90,10 @@ def generate_launch_description() -> LaunchDescription:
             Node(
                 package="ros_gz_sim",
                 executable="create",
-                arguments=["-param", "robot_description", "-name", "lego_car", "-z", "0.01"],
+                arguments=[
+                    "-param", "robot_description", "-name", "lego_car",
+                    "-x", car_x, "-y", car_y, "-z", "0.01", "-Y", car_yaw,
+                ],
                 parameters=[{"robot_description": robot_description}],
                 output="screen",
             ),

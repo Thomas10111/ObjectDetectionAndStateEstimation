@@ -4,8 +4,16 @@
 # memory: docs/rmw_comparison.md.
 FROM ros:lyrical-perception
 
+# ackermann_msgs and onnxruntime: the driving policy node (odse_driving).
+# vision_msgs: the YOLO and target nodes (/detections).
+# Ubuntu's onnxruntime package runs on the CPU and works with the system
+# Python that rclpy uses, so no venv is needed here.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ros-lyrical-rmw-zenoh-cpp \
+    && apt-get install -y --no-install-recommends \
+        ros-lyrical-rmw-zenoh-cpp \
+        ros-lyrical-ackermann-msgs \
+        ros-lyrical-vision-msgs \
+        python3-onnxruntime \
     && rm -rf /var/lib/apt/lists/*
 
 ENV RMW_IMPLEMENTATION=rmw_zenoh_cpp

@@ -25,6 +25,22 @@
   gz_type_name: gz.msgs.Pose_V
   direction: GZ_TO_ROS
 
+# True pose and speed of the car (OdometryPublisher plugin), and the true
+# position of the target ball (PosePublisher, child_frame_id = model name).
+# Used by the driving experiment instead of camera and YOLO.
+# /world/room/pose/info would arrive without names.
+- ros_topic_name: /ground_truth/odom
+  gz_topic_name: /ground_truth/odom
+  ros_type_name: nav_msgs/msg/Odometry
+  gz_type_name: gz.msgs.Odometry
+  direction: GZ_TO_ROS
+
+- ros_topic_name: /world_poses
+  gz_topic_name: /model/target_ball/pose_static
+  ros_type_name: tf2_msgs/msg/TFMessage
+  gz_type_name: gz.msgs.Pose_V
+  direction: GZ_TO_ROS
+
 - ros_topic_name: /joint_states
   gz_topic_name: /joint_states
   ros_type_name: sensor_msgs/msg/JointState

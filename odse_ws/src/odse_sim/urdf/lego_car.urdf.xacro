@@ -21,6 +21,8 @@
   <!-- Camera: assumed 15 cm above the floor, over the front axle -->
   <xacro:arg name="camera_x" default="0.25"/>
   <xacro:arg name="camera_z" default="0.15"/>
+  <!-- false removes the rendered cameras; much faster on integrated graphics -->
+  <xacro:arg name="cameras" default="true"/>
 
   <!-- Estimated -->
   <xacro:property name="wheel_width" value="0.035"/>
@@ -166,6 +168,7 @@
   <xacro:optical_frame name="camera_color"/>
   <xacro:optical_frame name="camera_depth"/>
 
+  <xacro:if value="$(arg cameras)">
   <gazebo reference="camera_link">
     <!-- Color: the real camera does 1920x1080; reduced to spare the laptop GPU -->
     <sensor name="color" type="camera">
@@ -195,6 +198,7 @@
       </camera>
     </sensor>
   </gazebo>
+  </xacro:if>
 
   <!-- IMU (stands in for the MPU-6050) -->
 
@@ -241,6 +245,16 @@
     <plugin filename="gz-sim-joint-state-publisher-system"
             name="gz::sim::systems::JointStatePublisher">
       <topic>joint_states</topic>
+    </plugin>
+    <!-- True pose and speed of the car from the physics (not from the
+         wheels), on /ground_truth/odom; used by the driving experiment. -->
+    <plugin filename="gz-sim-odometry-publisher-system"
+            name="gz::sim::systems::OdometryPublisher">
+      <odom_frame>room</odom_frame>
+      <robot_base_frame>base_link</robot_base_frame>
+      <odom_topic>ground_truth/odom</odom_topic>
+      <odom_publish_frequency>60</odom_publish_frequency>
+      <dimensions>2</dimensions>
     </plugin>
   </gazebo>
 
